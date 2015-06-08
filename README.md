@@ -59,24 +59,30 @@ La forma de alterar el comportamiento de `D` se hace con las constantes:
 
 Por lo tanto para indicarle al framework que queremos pintar los datos en el cuerpo de la página y en la consola del navegador tendremos que definir en el archivo *phrapi/framework/globals.php* a la consonante `PHRAPI_DEBUG` así:
 
-
+```php
 	define("PHRAPI_DEBUG", PHRAPI_DEBUG_FLAG_BODY | PHRAPI_DEBUG_FLAG_WEBCONSOLE);
-
+```
 
 # getValueFrom, $_GET, $_POST
 Para facilitar la obtención de las variables que se obtienene por los métodos $_GET, $_POST o de cualquier arreglo u objeto existe la función `getValueFrom` y sus formas especiales.
 
 Por ejemplo para obtener una variable de $_GET, validando que si no viene especificada la variable solicitada se obtenga un valor por defecto y haciendo que el valor resultante sea del tipo entero, en PHP puro se tendría que hacer lo siguiente:
 
+```php
     $numero = (int) isset($_GET['variable']) ? $_GET['variable'] : 10;
+```
 
 Haciendo uso de getValueFrom lo mismo se haría así:
 
+```php
     $numero = getValueFrom($_GET, 'variable', 10, FILTER_SANITIZE_PHRAPI_INT);
+```
 
 Y se puede hacer aún más sencillo con la variante de `getValueFrom`, `getInt`:
 
+```php
     $numero = getInt('variable', 10);
+```
 
 ## getValueFrom y sus argumentos
 
@@ -102,92 +108,133 @@ Constantes que se pueden pasar en el argumento `$sanitize`
 ### Arreglos
 Forma corta:
 
+```php
 	getArray($name, $default = [], $session_name = null, $callback = null)
+```
 
 Equivale a:
 
+```php
 	getValueFrom($_GET, $name, $default, FILTER_SANITIZE_PHRAPI_ARRAY, $session_name, $callback);
+```
 
 Forma corta:
 
+```php
 	postArray($name, $default = [], $session_name = null, $callback = null)
+```
 
 Equivale a:
 
+```php
 	getValueFrom($_POST, $name, $default, FILTER_SANITIZE_PHRAPI_ARRAY, $session_name, $callback);
+```
 
 ### Enteros
 Forma corta:
 
+```php
 	getInt($name, $default = 0, $session_name = null, $callback = null)
+```
 
 Equivale a:
 
+```php
 	getValueFrom($_GET, $name, $default, FILTER_SANITIZE_PHRAPI_INT, $session_name, $callback);
+```
 
 Forma corta:
 
+```php
 	postInt($name, $default = 0, $session_name = null, $callback = null)
+```
 
 Equivale a:
 
+```php
 	getValueFrom($_POST, $name, $default, FILTER_SANITIZE_PHRAPI_INT, $session_name, $callback);
+```
 
 ### Flotantes
 Forma corta:
 
+```php
 	getFloat($name, $default = 0, $session_name = null, $callback = null)
+```
 
 Equivale a:
 
+```php
 	getValueFrom($_GET, $name, $default, FILTER_SANITIZE_PHRAPI_FLOAT, $session_name, $callback);
+```
 
 Forma corta:
 
+```php
 	postFloat($name, $default = 0, $session_name = null, $callback = null)
+```
 
 Equivale a:
 
+```php
 	getValueFrom($_POST, $name, $default, FILTER_SANITIZE_PHRAPI_FLOAT, $session_name, $callback);
+```
 
 ### Booleanos
 Forma corta:
 
+```php
 	getBoolean($name, $default = 0, $session_name = null, $callback = null)
+```
 
 Equivale a:
 
+```php
 	getValueFrom($_GET, $name, $default, FILTER_SANITIZE_PHRAPI_BOOLEAN, $session_name, $callback);
+```
 
 Forma corta:
 
+```php
 	postBoolean($name, $default = 0, $session_name = null, $callback = null)
+```
 
 Equivale a:
 
+```php
 	getValueFrom($_POST, $name, $default, FILTER_SANITIZE_PHRAPI_BOOLEAN, $session_name, $callback);
+```
 
 ### Cadenas
 Forma corta:
 
+```php
 	getString($name, $default = "", $session_name = null, $callback = null)
+```
 
 Equivale a:
 
+```php
 	getValueFrom($_GET, $name, $default, FILTER_SANITIZE_STRING, $session_name, $callback);
+```
 
 Forma corta:
 
+```php
 	postString($name, $default = "", $session_name = null, $callback = null)
+```
 
 Equivale a:
 
+```php
 	getValueFrom($_POST, $name, $default, FILTER_SANITIZE_STRING, $session_name, $callback);
+```
 
 # Configuración, phrapi/config.php
 
 La configuración es un arreglo en que se le establecen las distintas banderas con las que funciona el framework, dentro de este arreglo nos encontramos con el índice *servers* el cual se destruye al iniciar la ejecución, esto se hace primero buscando un índice en *servers* con el nombre del dominio desde donde se está ejecutando, por ejemplo teniendo la siguiente configuración:
 
+```php
 	$config = [
 		'gmt' => '-05:00',
 		'locale' => 'es_MX',
@@ -218,9 +265,11 @@ La configuración es un arreglo en que se le establecen las distintas banderas c
 		],
 		'routing' => []
 	];
+```
 
 Si el sistema estuviera corriendo desde *localhost*, el arreglo de configuración quedará así:
 
+```php
 	$config = [
 		'gmt' => '-05:00',
 		'locale' => 'es_MX',
@@ -253,6 +302,7 @@ Si el sistema estuviera corriendo desde *localhost*, el arreglo de configuració
 		],
 		'routing' => []
 	];
+```
 
 De esta forma podemos correr el mismo sistema con distintas configuraciones dependiende el servidor sobre el que se esté ejecutando.
 
@@ -260,8 +310,9 @@ De esta forma podemos correr el mismo sistema con distintas configuraciones depe
 
 La conexión y comunicación con la base de datos lo gestiona la clase DB usando el driver de PDO de PHP, lo recomendable es no generar nuevas instancias, para obtener una instancia se debe mandar llamar su singletón:
 
+```php
 	$db = DB::getInstance();
-
+```
 Le método `DB::getInstance()` es el que se encarga de crear la conexión a la base de datos en base a la configuración del arreglo `$config['db']`, se puede especificar el índice pasandolo a `getInstance` por argumento, cuando no se especifica se obtiene el primer indice.
 
 Si dentro de un control se va a estar consultando en varias ocaciones la base de datos lo recomendable es asignar la instancia a una propiedad del control desde el constructor, por ejemplo:
