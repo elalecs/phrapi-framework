@@ -432,9 +432,11 @@ La forma recomendada sería:
 			':id' => $id
 		]);
 
-### Más allá de DB, Medoo
+### Más allá de DB, Medoo (Avanzado)
 
 También es posible usar alguna otra librería para interactuar con la base de datos, por ejemplo se podría usar Medoo (http://medoo.in/)
+
+Esto es solo un ejemplo de que es posible integrar librerías externas a Phrapi.
 
 	require_once PHRAPI_PATH.'libs/medoo/medoo.min.php';
 
@@ -509,8 +511,93 @@ Algunas de las librerías con las que se ha trabajado son:
  *  DreamObjects
  *  PHPExcel
  *  sendgrid-php
+ 
+## Convenciones usadas de PHP en Phrapi
 
+En vez de usr `echo $variable` se usará `<?=$variable?>`.
+
+No se usarán motores de plantillas (como Smarty) y en archivos donde en su mayoría se use HTML y se requiera código PHP, este deberá usarse en lo mínimo posible ya que mayormente debe estar contenido en los controles.
+
+En las páginas y vistas se deberá usar la sintaxis alternativa de control (http://php.net/manual/es/control-structures.alternative-syntax.php).
+
+Por ejemplo en vez de usar un `if () { codigo; } elseif { otro_codigo; } ` se deberá usar:
+
+	<? if(): ?>
+	<h1>Hola</h1>
+	<? elseif(): ?>
+	<h1>Adios</h1>
+	<? endif ?>
+	
+Para insertar variables en cadenas se deberá usar la forma compleja con llaves, por lo que en vez de hacer esto `echo "Hola $usuario"` se deberá hacer esto `echo "Hola {$usuario}"`, más información en http://php.net/manual/es/language.types.string.php#language.types.string.parsing.complex
+
+No definir las expresiones regulares con */* para no complicar su lectura, preferir el uso de *~* (alt+ñ), por ejemplo en vez de tener esto `echo preg_replace("/(\d{4})\/(\d{2})\/(\d{2})/", "$3-$2-$1", "2015/02/21");` usar la forma más clara con `echo preg_replace("~(\d{4})/(\d{2})/(\d{2})~", "$3-$2-$1", "2015/02/21");` evitando confusión escapando las diagonales.
+
+Preferir el declarar los arreglos en su forma corta con `[]` en vez de `array()`.
 
 # Guía para hacer un CRUD con Phrapi
+
+Para explicar el funcionamiento de Phrapi el siguiente tutorial detallará el funcionamiento de un módulo que implementará un CRUD (CRUD Create Read Update Delete o en español ABC Alta Baja Cambio) para la tabla definida en el apartado de DB.
+
+## Archivos
+
+ *  phrapi/controllers/DemoUsuarios.php
+ *  views/demousuarios.php
+ *  views/demousuarios_edicion.php
+ *  demo.php
+ 
+## Explicación
+
+Phrapi no obliga a seguir un modo de trabajar, salvo el tema de controles, en lo que es necesario usar clases, guardarlas en una ubicación en específico y ejecutar los controles con sus métodos desde `$factory`, lo que ya se explica al inicio de este documento.
+
+Aunque no se obliga a trabajar de un modo, es preferible seguir una convención para organizar el código y funcionamiento de una misma forma y así no complicar su entendimiento.
+
+La convención es usar un modelo HMVC, en donde una *página (H)* puede ejecutar uno o más controles, el *modelo (M)* puede ser directamente trabajar con la base de datos o usar medoo, las *vistas (V)* serán archivos que se guardarán en *views/* con el nombre del control y el nombre del método, y los *controles (C)* contendrá toda la programación y se guardarán en *phrapi/controllers/*
+
+Aunque una página puede ejecutar varios controles a la vez, un control se convierte en el primario, para nuestro ejemplo la acción principal es listar los registros de la tabla *the_users* pero en la misma pantalla querremos mostrar el nombre del usuario que está usando el sistema y el menu que deberá aparecerle.
+
+El primer paso será crear la página que contendrá la ejecución del control, la página deberá estar recibiendo una variable sobre la que se establecerá la acción o método que deberá ejecutar del control, donde por defecto será *index*. Dentro de la página en el área destinada para correr el control se mandará ejectuar su método, se obtendrá su resultado y se intentará incluir su vista para que presente la información de las variables devueltas por el control.
+
+## Página: demo.php
+
+	<? include_once 'phrapi/index.php' ?>
+	<? $accion = getString('accion', 'index') ?>
+	<!DOCTYPE html>
+	<html lang="">
+		<head>
+			<meta charset="utf-8">
+			<meta http-equiv="X-UA-Compatible" content="IE=edge">
+			<meta name="viewport" content="width=device-width, initial-scale=1">
+			<title>Demo</title>
+
+			<!-- Bootstrap CSS -->
+			<link href="//netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+
+			<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+			<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+			<!--[if lt IE 9]>
+				<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+				<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+			<![endif]-->
+		</head>
+		<body>
+			<h1 class="text-center">Demo</h1>
+
+			<? $result = $factory->DemoUsuarios->{$accion()} ?>
+			<? if (file_exists("views/demousuarios_{$accion}.php")) include_once "views/demousuarios_{$accion}.php" ?>
+
+			<!-- jQuery -->
+			<script src="//code.jquery.com/jquery.js"></script>
+			<!-- Bootstrap JavaScript -->
+			<script src="//netdna.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+		</body>
+	</html>
+
+## Listado
+
+## Captura y Edicion
+
+## Creación y Actualización
+
+## Borrado
 
 Por hacer
