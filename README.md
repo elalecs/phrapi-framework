@@ -763,7 +763,7 @@ Archivo *views/demousuario_index.php*
 			<td><?=$item->created_at?></td>
 			<td class="center">
 				<a href="demo.php?accion=edicion&amp;id=<?=$item->id?>" class="btn btn-xs"><i class="fa fa-edit"></i></a>
-				<a href="demo.php?accion=borrar&amp;id=<?=$item->id?>" class="btn btn-xs"><i class="fa fa-times"></i></a>
+				<a href="phrapi/demousuario/borrar?id=<?=$item->id?>" class="btn btn-xs"><i class="fa fa-times"></i></a>
 			</td>
 		</tr>
 		<? endforeach ?>
@@ -838,7 +838,7 @@ public function edicion() {
 			SELECT
 				*
 			FROM
-				requirements
+				the_users
 			WHERE
 				id = '{$id}'
 		");
@@ -884,8 +884,70 @@ Ahora agregamos la vista de edición, creamos el archivo *views/demousuario_edic
 
 ## Creación y Actualización
 
+Agregamos la ruta en *phrapi/config.php* para permitir la ejecución del método `guardar` de forma externa.
+
+```php
+'routing' => [
+	…
+	'demousuario/guardar' => ['controller' => 'DemoUsuario', 'action' => 'guardar'],
+]
+```
+
+Agregamos el siguiente código a *phrapi/controllers/DemoUsuario.php*:
+
+```php
+public function guardar() {
+	$datos = [
+		':id' => postInt('id'),
+		':name' => postString('name'),
+		':status' => postString('status')
+	];
+
+	if ($datos[':id']) {
+		$this->db->query("
+			UPDATE the_users SET
+				name = :name,
+				status = :status
+			WHERE
+				id = :id
+		", $datos);
+	} else {
+		$this->db->query("
+			INSERT INTO the_users SET
+				name = :name,
+				status = :status,
+				created_at = NOW()
+		", $datos);
+
+		$datos[':id'] = $this->db->getLastID();
+	}
+
+	redirect("demo.php");
+}
+```
 
 
 ## Borrado
 
-Por hacer
+Agregamos la ruta en *phrapi/config.php* para permitir la ejecución del método `borrar` de forma externa.
+
+```php
+'routing' => [
+	…
+	'demousuario/borrar' => ['controller' => 'DemoUsuario', 'action' => 'borrar'],
+]
+```
+
+Agregamos el siguiente código a *phrapi/controllers/DemoUsuario.php*:
+
+```php
+public function borrar() {
+	$id = getInd('id');
+
+	if ($id) {
+		$this->db->query("DELETE FROM the_users WHERE id = '{$id}'");
+	}
+
+	redirect("demo.php");
+}
+```
