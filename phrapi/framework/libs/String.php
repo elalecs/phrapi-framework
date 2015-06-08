@@ -111,4 +111,42 @@ final class String
 		}
 		return $string;
 	}
+
+	/**
+	 * Convert a tokenized string to an array of params, to use in advanced search with filters, like Gmail
+	 *
+	 * Example:
+	 *   $params = String::toParams('campo:(algo por aquí) fecha:2015/02/21 estatus:activo precio:(500,000 a 1,200,000) guadalajara');
+	 *
+	 * Return:
+	 *   Array
+	 *   (
+	 *       [campo] => algo por aquí
+	 *       [fecha] => 2015/02/21
+	 *       [estatus] => activo
+	 *       [precio] => 500,000 a 1,200,000
+	 *       [text] => guadalajara
+	 *   )
+	 */
+	static function toParams($string) {
+		$params = [];
+
+		preg_match_all('/([a-zA-Z]+:(?:\([^)]+?\)|[^( ]+))/', $string, $tokens);
+
+		if (isset($tokens[0]) && sizeof($tokens[0])) {
+			foreach ($tokens[0] as $i_token => $token) {
+				$exploded = explode(':', $token);
+				$params[$exploded[0]] = preg_replace('/(^\(|\)$)/', '', $exploded[1]);
+			}
+		}
+
+		$text = preg_replace('/([a-zA-Z]+:(?:\([^)]+?\)|[^( ]+))/', '', $string);
+		$text = preg_replace('/[^0-9a-zA-ZñÑ-]/', "", $text);
+		$text = preg_replace('/\ {2,}/', ' ', $text);
+		$text = trim($text);
+
+		$params['text'] = $text;
+
+		return $params;
+	}
 }

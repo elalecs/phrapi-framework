@@ -20,11 +20,13 @@ define("PHRAPI_DEBUG_FLAG_HEADER", PHRAPI << ++$_flags);
 
 define("PHRAPI_DEBUG_FLAG_LOG", PHRAPI << ++$_flags);
 
-define("PHRAPI_DEBUG_FLAG_ALL", PHRAPI_DEBUG_FLAG_BODY | PHRAPI_DEBUG_FLAG_HEADER | PHRAPI_DEBUG_FLAG_LOG);
+define("PHRAPI_DEBUG_FLAG_WEBCONSOLE", PHRAPI << ++$_flags);
+
+define("PHRAPI_DEBUG_FLAG_ALL", PHRAPI_DEBUG_FLAG_BODY | PHRAPI_DEBUG_FLAG_HEADER | PHRAPI_DEBUG_FLAG_LOG | PHRAPI_DEBUG_FLAG_WEBCONSOLE);
 
 define("PHRAPI_DEBUG_FLAG_NONE", 0);
 
-define("PHRAPI_DEBUG", PHRAPI_DEBUG_FLAG_BODY);
+define("PHRAPI_DEBUG", PHRAPI_DEBUG_FLAG_BODY | PHRAPI_DEBUG_FLAG_WEBCONSOLE);
 
 $base_path = dirname($_SERVER['SCRIPT_FILENAME']) .  (!file_exists('config.php') && file_exists('phrapi/config.php') ? '/phrapi/' : '');
 if (!preg_match('/\/$/', $base_path)) $base_path .= '/';
@@ -88,7 +90,7 @@ function logEnd()
 	$mem_app = bytesToHuman(function_exists('memory_get_usage') ? memory_get_usage() : 0);
 	$mem_real = bytesToHuman(function_exists('memory_get_usage') ? memory_get_usage(1) : 0);
 
-	$msg = array();
+	$msg = [];
 	$msg[] = "Elapsed Estimated Time: {$tmp_time} s";
 
 	// http://blog.rompe.org/node/85
@@ -138,14 +140,14 @@ function bytesToHuman($int)
  */
 spl_autoload_register(function($classname)
 {
-	$paths = array(
+	$paths = [
 		"phrapi_framework_libs",
 		"phrapi_libs",
 		"phrapi_controllers",
 		"framework_libs",
 		"libs",
 		"controllers"
-	);
+	];
 
 	$loaded = false;
 	$class_path = "";
@@ -160,14 +162,26 @@ spl_autoload_register(function($classname)
 		}
 	}
 
-	if (!$loaded) {
-		$paths = join("','", $paths);
-		trigger_error("Can't loaded, Paths: '{$paths}'");
+	if(
+		(
+			preg_match("/Aws/",$classname)
+			|| preg_match("/Guzzle/",$classname)
+			|| preg_match("/Symfony/",$classname)
+		)
+		&& !class_exists($classname)
+	){
+		//nothing to do
 	}
+	/*	else{
+		if (!$loaded) {
+			$paths = join("','", $paths);
+			#trigger_error("Can't loaded, Paths: '{$paths}'");
+		}
 
-	if (!class_exists($classname)) {
-		trigger_error("Not exists, Class: {$classname}, Path: {$class_path}");
-	}
+		if (!class_exists($classname)) {
+			#trigger_error("Not exists, Class: {$classname}, Path: {$class_path}");
+		}
+	}*/
 });
 
 /**
@@ -176,7 +190,7 @@ spl_autoload_register(function($classname)
  */
 function status_code($code = 500) {
 	$code = (int) $code;
-	$codes = array(
+	$codes = [
 		100 => 'Continue',
 		101 => 'Switching Protocols',
 		102 => 'Processing (WebDAV)',
@@ -245,7 +259,7 @@ function status_code($code = 500) {
 		511 => 'Network Authentication Required (draft)',
 		598 => 'Network read timeout error',
 		599 => 'Network connect timeout error',
-	);
+	];
 
 	if (!array_key_exists($code, $codes)) {
 		$code = 500;
@@ -304,7 +318,7 @@ function Console($data, $type = "normal") {
 	$backtrace = "";
 	$last_func = "";
 	foreach(debug_backtrace() as $_trace) {
-		if (isset($_trace['function']) && in_array($_trace['function'], array('Console'))) {
+		if (isset($_trace['function']) && in_array($_trace['function'], ['Console'])) {
 			continue;
 		}
 		$backtrace[] = basename($_trace['file']) . ":" . $_trace['line'];
@@ -317,6 +331,11 @@ function Console($data, $type = "normal") {
 		foreach(preg_split('/\n/', $data) as $data_line) {
 			ConsoleHeader($data_line);
 		}
+	}
+
+	if (PHRAPI_DEBUG_FLAG_WEBCONSOLE === (PHRAPI_DEBUG & PHRAPI_DEBUG_FLAG_WEBCONSOLE)) {
+		print("<script>console.log('%s\\n[PHRAPI] %s', ".json_encode($data).", '{$backtrace}');</script>");
+		flush();
 	}
 
 	if (PHRAPI_DEBUG_FLAG_BODY === (PHRAPI_DEBUG & PHRAPI_DEBUG_FLAG_BODY)) {
@@ -376,7 +395,7 @@ function F($data) {
 function getRemote($config) {
 	$user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_2) AppleWebKit/535.7 (KHTML, like Gecko) Chrome/16 Safari/535.7";
 	if (is_string($config)) {
-		$config = (object) array(
+		$config = (object) [
 			'url' => $config,
 			'method' => 'get',
 			'return' => 'raw',
@@ -387,10 +406,10 @@ function getRemote($config) {
 			'referer' => '',
 			'debug' => false,
 			'save' => false,
-			'args' => array()
-		);
+			'args' => []
+		];
 	} else {
-		$config = (object) ($config + array(
+		$config = (object) ($config + [
 			'url' => '',
 			'method' => 'get',
 			'return' => 'raw',
@@ -401,8 +420,8 @@ function getRemote($config) {
 			'referer' => '',
 			'debug' => false,
 			'save' => false,
-			'args' => array()
-		));
+			'args' => []
+		]);
 	}
 
 	if (empty($config->url)) {
@@ -412,7 +431,7 @@ function getRemote($config) {
 	$config->original_url = $config->url;
 
 	if (sizeof($config->args) > 0 && $config->method == 'get') {
-		$args = array();
+		$args = [];
 		foreach($config->args as $arg_name => $arg_value) {
 			$args[] = "{$arg_name}=" . urlencode($arg_value);
 		}
@@ -445,13 +464,17 @@ function getRemote($config) {
 	if (!empty($config->cookie_jar)) {
 		curl_setopt($curl, CURLOPT_COOKIEJAR, $config->cookie_jar);
 	}
-	if (sizeof($config->args) > 0 && $config->method == 'post') {
-		curl_setopt($curl, CURLOPT_POSTFIELDS, $config->args);
+
+	if (sizeof($config->args) > 0 && in_array($config->method, ['post','put','delete']))  {
+		$args = http_build_query($config->args);
+		curl_setopt($curl, CURLOPT_CUSTOMREQUEST, strtoupper($config->method) );
+		curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Length: ' . strlen($args)]);
+      	curl_setopt($curl, CURLOPT_POSTFIELDS, $args);
 	}
+
 	$response = curl_exec($curl);
-
 	$response_content_type = curl_getinfo($curl, CURLINFO_CONTENT_TYPE);
-
+	$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 	curl_close($curl);
 
 	if (!empty($config->save)) {
@@ -480,21 +503,21 @@ function getRemote($config) {
  *
  * @param array $config [url=string, method=get|post, args=hash]
  */
-function getRemoteJSON($config = array()) {
+function getRemoteJSON($config = []) {
 	if (is_string($config)) {
-		$config = array(
+		$config = [
 			'url' => $config,
 			'method' => 'get',
 			'return' => 'json',
-			'args' => array()
-		);
+			'args' => []
+		];
 	} else {
-		$config = $config + array(
+		$config = $config + [
 			'url' => '',
 			'method' => 'get',
 			'return' => 'json',
-			'args' => array()
-		);
+			'args' => []
+		];
 	}
 
 	return getRemote($config);
@@ -507,7 +530,7 @@ function getRemoteJSON($config = array()) {
  * <code>
  *   $id = getValueFrom($_POST, "id", 0);
  *
- *   $x = getValueFrom(array("a" => array("b" => array("c" => 123))), "a.b.c");
+ *   $x = getValueFrom(["a" => ["b" => ["c" => 123]]], "a.b.c");
  * </code>
  *
  * @todo make a xpath implementation
@@ -516,29 +539,50 @@ function getRemoteJSON($config = array()) {
  * @param string $path
  * @param mixed $default[optional]
  */
-function getValueFrom($data, $path = null, $default = null, $sanitize = null)
+function getValueFrom($from, $path = null, $default = null, $sanitize = null, $session_name = null, $callback = null)
 {
-	if (empty($path) || $path == null) {
-		return Sanitize::by($default, $sanitize);
+	$session = Session::getInstance();
+	if ($session_name) {
+		$default = isset($session->{$session_name}->{$path}) ? $session->{$session_name}->{$path} : $default;
 	}
 
-	if (!is_array($data) && !is_object($data)) {
-		return Sanitize::by($default, $sanitize);
+	$beforeReturn = function($value, $to_session = false) use ($path, $sanitize, $session, $session_name, $callback) {
+		$value = Sanitize::by($value, $sanitize);
+		if (is_callable($callback)) {
+			$value = $callback($value);
+		}
+
+		if ($to_session && $session_name) {
+			if (!isset($session->{$session_name})) {
+				$session->{$session_name} = new stdClass();
+			}
+			$session->{$session_name}->{$path} = $value;
+		}
+
+		return $value;
+	};
+
+	if (empty($path) || $path == null) {
+		return $beforeReturn($default);
+	}
+
+	if (!is_array($from) && !is_object($from)) {
+		return $beforeReturn($default);
 	}
 
 	// without a path
 	if (strpos($path, ".") === false) {
-		if (is_array($data) && isset($data[$path]))
-			return Sanitize::by($data[$path], $sanitize);
+		if (is_array($from) && isset($from[$path]))
+			return $beforeReturn($from[$path], true);
 
-		if (is_object($data) && isset($data->$path))
-			return Sanitize::by($data->$path, $sanitize);
+		if (is_object($from) && isset($from->$path))
+			return $beforeReturn($from->$path, true);
 
-		return Sanitize::by($default, $sanitize);
+		return $beforeReturn($default);
 	}
 
 	// with a path
-	$value = $data;
+	$value = $from;
 	foreach(explode(".", $path) as $crumb) {
 		if (is_array($value) && isset($value[$crumb])) {
 			$value = $value[$crumb];
@@ -546,11 +590,41 @@ function getValueFrom($data, $path = null, $default = null, $sanitize = null)
 		elseif (is_object($value) && isset($value->$crumb)) {
 			$value = $value->$crumb;
 		} else {
-			Sanitize::by($default, $sanitize);
+			return $default;
 		}
 	}
 
-	return Sanitize::by($value, $sanitize);
+	return $beforeReturn($value, true);
+}
+function getArray($name, $default = [], $session_name = null, $callback = null) {
+	return getValueFrom($_GET, $name, $default, FILTER_SANITIZE_PHRAPI_ARRAY, $session_name, $callback);
+}
+function postArray($name, $default = [], $session_name = null, $callback = null) {
+	return getValueFrom($_POST, $name, $default, FILTER_SANITIZE_PHRAPI_ARRAY, $session_name, $callback);
+}
+function getInt($name, $default = 0, $session_name = null, $callback = null) {
+	return (int) getValueFrom($_GET, $name, $default, FILTER_SANITIZE_PHRAPI_INT, $session_name, $callback);
+}
+function postInt($name, $default = 0, $session_name = null, $callback = null) {
+	return (int) getValueFrom($_POST, $name, $default, FILTER_SANITIZE_PHRAPI_INT, $session_name, $callback);
+}
+function getFloat($name, $default = 0, $session_name = null, $callback = null) {
+	return (float) getValueFrom($_GET, $name, $default, FILTER_SANITIZE_PHRAPI_FLOAT, $session_name, $callback);
+}
+function postFloat($name, $default = 0, $session_name = null, $callback = null) {
+	return (float) getValueFrom($_POST, $name, $default, FILTER_SANITIZE_PHRAPI_FLOAT, $session_name, $callback);
+}
+function getBoolean($name, $default = 0, $session_name = null, $callback = null) {
+	return (float) getValueFrom($_GET, $name, $default, FILTER_SANITIZE_PHRAPI_BOOLEAN, $session_name, $callback);
+}
+function postBoolean($name, $default = 0, $session_name = null, $callback = null) {
+	return (float) getValueFrom($_POST, $name, $default, FILTER_SANITIZE_PHRAPI_BOOLEAN, $session_name, $callback);
+}
+function getString($name, $default = "", $session_name = null, $callback = null) {
+	return getValueFrom($_GET, $name, $default, FILTER_SANITIZE_STRING, $session_name, $callback);
+}
+function postString($name, $default = "", $session_name = null, $callback = null) {
+	return getValueFrom($_POST, $name, $default, FILTER_SANITIZE_STRING, $session_name, $callback);
 }
 
 /**
@@ -558,51 +632,75 @@ function getValueFrom($data, $path = null, $default = null, $sanitize = null)
  *
  * Ejemplo:
  * <code>
- * $hash = getHash($_POST, array(
+ * $hash = getHash($_POST, [
  *   "arg1" => FILTER_SANITIZE_STRING,
  *   "arg2" => FILTER_SANITIZE_STRING
- * ));
- * $hash = getHash($_POST, array(
- *   array(
+ * ]);
+ * $hash = getHash($_POST, [
+ *   [
  *     "name" => "id",
  *     "default" => 0,
  *     "type" => "int"
- *   ),
- *   array(
+ *   ],
+ *   [
  *     "name" => "name",
  *     "default" => "",
  *     "sanitize" => FILTER_SANITIZE_STRING
- *     )
- * ));
+ *   ]
+ * ]);
  * </code>
  *
  * @param array $from [$_POST, $_GET, $_REQUEST, $_SERVER, $_SESSION, etc]
  * @param array $config [[name=>string, default=>mixed, type=[string, integer, float, boolean], sanitize=>FILTER_SANITIZE_]]
  * </p>
  */
-function getHash($from = null, $config = null) {
+function getHash($from = null, $config = null, $session_name = false) {
 	// argumentos invalidos?
 	if (!is_array($from) || !is_array($config)) {
 		return null;
 	}
 
-	$data = array();
-	foreach($config as $param_key => $param) {
+	$session = Session::getInstance();
+
+	$data = [];
+	foreach($config as $config_index => $config_item) {
 		$_data = null;
 
 		// se intenta accedor al valor por <nombre>:<sanitizacion>
-		if (is_string($param_key) && !is_array($param) && !is_object($param)) {
-			$data[$param_key] = getValueFrom($from, $param_key, null, $param);
+		if (is_string($config_index) && !is_array($config_item) && !is_object($config_item)) {
+			if (!isset($from[$config_index]) && $session_name && isset($session->{$session_name}->{$config_index})) {
+				$data[$config_index] = $session->{$session_name}->{$config_index};
+			} else {
+				$data[$config_index] = getValueFrom($from, $config_index, null, $config_item);
+
+				if ($session_name) {
+					if (!isset($session->{$session_name})) {
+						$session->{$session_name} = new stdClass();
+					}
+					$session->{$session_name}->{$config_item} = $data[$config_index];
+				}
+			}
 		}
 
 		// se intenta acceder al valor esquema en arreglo
-		if (is_integer($param_key) && is_array($param)) {
-			$name = getValueFrom($param, 'name', '');
-			$default = getValueFrom($param, 'default', '');
-			$sanitize = getValueFrom($param, 'sanitize', FILTER_DEFAULT);
-			$type = getValueFrom($param, 'type', 'string');
+		if (is_integer($config_index) && is_array($config_item)) {
+			$name = getValueFrom($config_item, 'name', '');
+			$default = getValueFrom($config_item, 'default', '');
+			$sanitize = getValueFrom($config_item, 'sanitize', FILTER_DEFAULT);
+			$type = getValueFrom($config_item, 'type', 'string');
 			if (!empty($name)) {
-				$_data = getValueFrom($from, $name, $default, $sanitize);
+				$to_session = true;
+				if (!isset($from[$name]) && $session_name && isset($session->{$session_name}->{$name})) {
+					$_data = $session->{$session_name}->{$name};
+					$to_session = false;
+				} elseif(!isset($from[$name])) {
+					$_data = $default;
+					$to_session = false;
+				}else{
+					$_data = $default;
+				}
+
+				$_data = getValueFrom($from, $name, $_data, $sanitize);
 			}
 
 			if (!empty($type) && is_string($type)) {
@@ -610,89 +708,17 @@ function getHash($from = null, $config = null) {
 			}
 
 			$data[$name] = $_data;
+
+			if ($to_session) {
+				if (!isset($session->{$session_name})) {
+					$session->{$session_name} = new stdClass();
+				}
+				$session->{$session_name}->{$name} = $_data;
+			}
 		}
 	}
 
 	return $data;
-}
-
-
-/**
- * Pretty-print JSON string
- *
- * Use 'format' option to select output format - currently html and txt supported, txt is default
- * Use 'indent' option to override the indentation string set in the format - by default for the 'txt' format it's a tab
- *
- * http://www.molengo.com/blog.article/id/215/title/php-json-pretty-print
- *
- * @param string $json Original JSON string
- * @param array $options Encoding options
- * @return string
- */
-function json_pretty($json, $options = array())
-{
-	$tokens = preg_split('|([\{\}\]\[,])|', $json, -1, PREG_SPLIT_DELIM_CAPTURE);
-	$result = '';
-	$indent = 0;
-
-	$format = 'txt';
-
-	//$ind = "\t";
-	$ind = "    ";
-
-	if (isset($options['format'])) {
-		$format = $options['format'];
-	}
-
-	switch ($format) {
-		case 'html':
-			$lineBreak = '<br />';
-			$ind = '&nbsp;&nbsp;&nbsp;&nbsp;';
-			break;
-		default:
-		case 'txt':
-			$lineBreak = "\n";
-			//$ind = "\t";
-			$ind = "    ";
-			break;
-	}
-
-	// override the defined indent setting with the supplied option
-	if (isset($options['indent'])) {
-		$ind = $options['indent'];
-	}
-
-	$inLiteral = false;
-	foreach ($tokens as $token) {
-		if ($token == '') {
-			continue;
-		}
-
-		$prefix = str_repeat($ind, $indent);
-		if (!$inLiteral && ($token == '{' || $token == '[')) {
-			$indent++;
-			if (($result != '') && ($result[(strlen($result) - 1)] == $lineBreak)) {
-				$result .= $prefix;
-			}
-			$result .= $token . $lineBreak;
-		} elseif (!$inLiteral && ($token == '}' || $token == ']')) {
-			$indent--;
-			$prefix = str_repeat($ind, $indent);
-			$result .= $lineBreak . $prefix . $token;
-		} elseif (!$inLiteral && $token == ',') {
-			$result .= $token . $lineBreak;
-		} else {
-			$result .= ( $inLiteral ? '' : $prefix ) . $token;
-
-			// Count # of unescaped double-quotes in token, subtract # of
-			// escaped double-quotes and if the result is odd then we are
-			// inside a string literal
-			if ((substr_count($token, "\"") - substr_count($token, "\\\"")) % 2 != 0) {
-				$inLiteral = !$inLiteral;
-			}
-		}
-	}
-	return $result;
 }
 
 /**
@@ -728,7 +754,7 @@ function sortByLengthReverse($a, $b){
 
 /*
  * Search for a value in a field into an array
- * 
+ *
  */
 function in_array_field($needle, $needle_field, $haystack, $object = true) {
 	foreach ($haystack as $item_index => $item)
@@ -736,4 +762,4 @@ function in_array_field($needle, $needle_field, $haystack, $object = true) {
 			return ($object) ? $item : $item_index;
 
 	return null;
-} 
+}

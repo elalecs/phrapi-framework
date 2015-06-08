@@ -16,6 +16,16 @@ define("FILTER_SANITIZE_PHRAPI_INT", PHRAPI << ++$GLOBALS['_flags']);
 define("FILTER_SANITIZE_PHRAPI_FLOAT", PHRAPI << ++$GLOBALS['_flags']);
 
 /**
+ * Flag for sanitize an array
+ */
+define("FILTER_SANITIZE_PHRAPI_ARRAY", PHRAPI << ++$GLOBALS['_flags']);
+
+/**
+ * Flag for sanitize an array
+ */
+define("FILTER_SANITIZE_PHRAPI_BOOLEAN", PHRAPI << ++$GLOBALS['_flags']);
+
+/**
  * Class for sanitize
  *
  * @author Alejandro Galindo, twitter.com/elalecs
@@ -39,6 +49,14 @@ final class Sanitize {
 
 		if ($type === FILTER_SANITIZE_PHRAPI_FLOAT) {
 			return Sanitize::float($mixed);
+		}
+
+		if ($type === FILTER_SANITIZE_PHRAPI_ARRAY) {
+			return Sanitize::array_type($mixed);
+		}
+
+		if ($type === FILTER_SANITIZE_PHRAPI_BOOLEAN) {
+			return Sanitize::boolean($mixed);
 		}
 
 		return filter_var($mixed, $type);
@@ -75,5 +93,13 @@ final class Sanitize {
 		$mixed = mysql_escape_mimic($mixed);
 
 		return $mixed;
+	}
+
+	static function boolean($mixed) {
+		$mixed = filter_var($mixed, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+	}
+
+	static function array_type($mixed) {
+		return (array) $mixed;
 	}
 }

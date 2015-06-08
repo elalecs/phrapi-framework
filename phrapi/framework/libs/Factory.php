@@ -9,13 +9,18 @@
 class Factory {
 	protected $controllers = array();
 	protected $config;
+	private static $_primary = false;
 
 	public function __construct() {
 		$this->config = $GLOBALS['config'];
 
 		$resource = getValueFrom($_GET, 'resource', '', FILTER_SANITIZE_STRING);
 
-		if(!empty($resource) AND isset($this->config['routing']) AND is_array($this->config['routing']) AND sizeof($this->config['routing'])) {
+		if(!self::$_primary) {
+			self::$_primary = spl_object_hash($this);
+		}
+
+		if(self::$_primary === spl_object_hash($this) AND !empty($resource) AND isset($this->config['routing']) AND is_array($this->config['routing']) AND sizeof($this->config['routing'])) {
 			$params = array(
 				'controller' => '',
 				'action' => '',
@@ -44,7 +49,7 @@ class Factory {
 
 					if (!headers_sent())
 						header("Content-type: text/plain; charset=UTF-8");
-					echo json_pretty(json_encode($response));
+					echo json_encode($response, JSON_PRETTY_PRINT);
 				}
 			}
 		}
@@ -58,7 +63,7 @@ class Factory {
 		$controller_filename = $this->config['controllers_path'] . $control . ".php";
 
 		if (empty($control) OR !file_exists($controller_filename)) {
-			D("500: control inexistente");
+			D("500: control inexistente".$controller_filename);
 			status_code();
 			die;
 		}
