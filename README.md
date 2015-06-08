@@ -317,6 +317,7 @@ Le método `DB::getInstance()` es el que se encarga de crear la conexión a la b
 
 Si dentro de un control se va a estar consultando en varias ocaciones la base de datos lo recomendable es asignar la instancia a una propiedad del control desde el constructor, por ejemplo:
 
+```php
 	class MiControl {
 		private $db;
 
@@ -324,11 +325,13 @@ Si dentro de un control se va a estar consultando en varias ocaciones la base de
 			$this->db = DB::getInstance();
 		}
 	}
+```
 
 ## Método en DB para interactuar con la base de datos
 
 Para explicar los métodos se tomará como base la siguiente tabla.
 
+```sql
 	CREATE TABLE `the_users` (
 	  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
 	  `name` char(250) DEFAULT NULL,
@@ -336,6 +339,7 @@ Para explicar los métodos se tomará como base la siguiente tabla.
 	  `created_at` date DEFAULT NULL,
 	  PRIMARY KEY (`id`)
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+```
 
 Con los siguientes registros.
 
@@ -349,6 +353,7 @@ Con los siguientes registros.
 
 Regresa un arreglo de objetos con todos los registros que devuelve la query.
 
+```php
 	D($this->db->queryAll("SELECT * FROM the_users"));
 	Array
 	(
@@ -369,33 +374,39 @@ Regresa un arreglo de objetos con todos los registros que devuelve la query.
 			)
 
 	)
+```
 
 ### queryAllOne($sql[, $params])
 
 Devuelve un arreglo con solo la primer columna de todos los registros que devuelva la query.
 
+```php
 	D($this->db->queryAllOne("SELECT name FROM the_users"));
 	Array
 	(
 		[0] => Carmen Montoro
 		[1] => Avril Galindo
 	)
+```
 
 ### queryAllSpecial($sql[, $params])
 
 Devuelve un arreglo buscando que la query devuelva 2 columnas una por nombre *id* y otra por nombre *label* para regresarlo como índice:valor.
 
+```php
 	D($this->db->queryAllSpecial("SELECT id, name as label FROM the_users"));
 	Array
 	(
 		[100] => Carmen Montoro
 		[101] => Avril Galindo
 	)
+```
 
 ### queryRow($sql[, $params[, $fetch_style]])
 
 Retorna un solo registro completo en base a la query ingresada.
 
+```php
 	D($this->db->queryRow("SELECT * FROM the_users WHERE id = 101"));
 	stdClass Object
 	(
@@ -404,24 +415,29 @@ Retorna un solo registro completo en base a la query ingresada.
 		[status] => inactivo
 		[created_at] => 2015-06-06
 	)
+```
 
 ### queryOne($sql[, $params])
 
 Regresa solo el primer valor en base a lo devuelto por la query.
 
+```php
 	D($this->db->queryOne("SELECT name FROM the_users WHERE id = 101"));
 	Avril Galindo
+```
 
 ### getEnumOptions($tabla, $campo)
 
 Regresa un arreglo con los valores de un campo tipo Enum.
 
+```php
 	D($this->db->getEnumOptions('the_users', 'status'));
 	Array
 	(
 		[1] => activo
 		[2] => inactivo
 	)
+```
 
 ### fetch style
 
@@ -435,12 +451,15 @@ Este método sirve para ejecutar cualquier query en la base de datos, de hecho l
 
 La forma simple sería:
 
+```php
 	$nombre = 'Mega';
 	$estatus = 'activo';
 	$this->db->query("INSERT INTO the_users SET `name` = '{$nombre}', `status` = '{$estatus}', created_at = '2015-06-06'");
+```
 
 La forma más correcta, aprovechando la funcionalidad de `prepare` y `execute` de *PDO* y evitando que se inyecte código es la siguiente:
 
+```php
 	$nombre = 'Mega';
 	$this->db->query("
 		INSERT INTO the_users
@@ -453,24 +472,30 @@ La forma más correcta, aprovechando la funcionalidad de `prepare` y `execute` d
 			':name' => $nombre,
 			':estatus' => 'activo'
 		]);
+```
 
 #### getLastID()
 
 Cuando se hace un INSERT se puede mandar llamar al método `getLastID()` para obtener el id generado de la última inserción:
 
+```php
 	$this->db->query("INSERT INTO …";
 	$id = $this->db->getLastID();
+```
 
 #### Para hacer un UPDATE
 
 Es igual que para un INSERT puede ser de una forma simple:
 
+```php
 	$estatus = 'activo';
 	$id = 102;
 	$this->db->query("UPDATE the_users SET `status` = '{$estatus}' WHERE id = '{$id}'");
+```
 
 La forma recomendada sería:
 
+```php
 	$estatus = 'activo';
 	$id = 102;
 	$this->db->query("
@@ -484,6 +509,7 @@ La forma recomendada sería:
 			':estatus' => $estatus,
 			':id' => $id
 		]);
+```
 
 ### Más allá de DB, Medoo (Avanzado)
 
@@ -491,7 +517,7 @@ También es posible usar alguna otra librería para interactuar con la base de d
 
 Esto es solo un ejemplo de que es posible integrar librerías externas a Phrapi.
 
-	```php
+```php
 	require_once PHRAPI_PATH.'libs/medoo/medoo.min.php';
 
 	$config_db = $GLOBALS['config']['db'][0];
@@ -508,7 +534,7 @@ Esto es solo un ejemplo de que es posible integrar librerías externas a Phrapi.
 		'status' => 'activo',
 		'created_at' => '2015-06-06'
 	]);
-	```
+```
 
 # Sesiones, phrapi/framework/libs/Session.php
 
@@ -516,46 +542,56 @@ Las sesiones en Phrapi son gestionadas desde `Sesssion`, es tan simple como regi
 
 Para obtener la instancia de `Session`:
 
+```php
 	$session = Session::getInstance();
+```
 
 Registrar un valor en sesion:
 
+```php
 	$session->propiedad = 'valor';
+```
 
 Obtener el valor de sesion:
 
+```php
 	$variable = $session->propiedad;
+```
 
 Remover el valor de sesion:
 
+```php
 	unset($session->propiedad);
+```
 
 Destruir toda la sesion:
 
+```php
 	$session->kill();
+```
 
 ## getValueFrom y Session
 
 Hay ocasiones en las que se requiere obtener un valor de $_GET o $_POST por ejemplo un filtro, si viene el valor guardarlo en sesión para que en consultas futuras de no venir en $_GET o $_POST obtenerlo del último valor en sesión.
 
-	```php
+```php
 	$filtro = getValueFrom($_GET, 'filtro', $session->filtro);
 	if (isset($_GET['filtro']) {
 		$session->filtro = $filtro;
 	}
-	```
+```
 
 Lo mismo lo podemos resumir usando el parámetro *session_name* en getValueFrom y sus variantes, por ejemplo si el valor que buscamos es una cadena la forma sería:
 
-	```php
+```php
 	$filtro = getString('filtro', '', 'temporal');
-	```
+```
 
 Si quisieramos obtener el valor que tenga `Session` después de intentar obtenerla de $_GET, como es el caso anterior podemos accederla con `$session->nombre_de_sesion->elemento` donde en este caso *nombre_de_sesion* sería *temporal* y elemento sería *filtro*
 
-	```php
+```php
 	D($session->temporal->filtro);
-	```
+```
 
 
 # Phrapi
@@ -583,13 +619,13 @@ En las páginas y vistas se deberá usar la sintaxis alternativa de control (htt
 
 Por ejemplo en vez de usar un `if () { codigo; } elseif { otro_codigo; } ` se deberá usar:
 
-	```php
+```php
 	<? if(): ?>
 	<h1>Hola</h1>
 	<? elseif(): ?>
 	<h1>Adios</h1>
 	<? endif ?>
-	```
+```
 	
 Para insertar variables en cadenas se deberá usar la forma compleja con llaves, por lo que en vez de hacer esto `echo "Hola $usuario"` se deberá hacer esto `echo "Hola {$usuario}"`, más información en http://php.net/manual/es/language.types.string.php#language.types.string.parsing.complex
 
@@ -624,7 +660,7 @@ El primer paso será crear la página que contendrá la ejecución del control, 
 
 ## Página: demo.php
 
-	```php
+```php
 	<? include_once 'phrapi/index.php' ?>
 	<? $accion = getString('accion', 'index') ?>
 	<!DOCTYPE html>
@@ -657,13 +693,13 @@ El primer paso será crear la página que contendrá la ejecución del control, 
 			<script src="//netdna.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
 		</body>
 	</html>
-	```
+```
 
 ## Listado
 
 Archivo *phrapi/controllers/DemoUsuario.php*
 
-	```php
+```php
 	<?php defined('PHRAPI') or die("Direct access not allowed!");
 
 	class DemoUsuario {
@@ -687,11 +723,11 @@ Archivo *phrapi/controllers/DemoUsuario.php*
 			return compact('navigation', 'items');
 		}
 	}
-	```
+```
 	
 Archivo *views/demousuario_index.php*
 
-	```php
+```php
 	<table class="table table-striped table-hover" id="sample-table-2">
 		<thead>
 			<tr>
@@ -722,11 +758,11 @@ Archivo *views/demousuario_index.php*
 			</tr>
 		</tfoot>
 	</table>
-	```
+```
 
 Archivo *views/navigation.php*
 
-	```php
+```php
 	<table class="table">
 		<thead>
 			<tr>
@@ -767,13 +803,13 @@ Archivo *views/navigation.php*
 			</tr>
 		</thead>
 	</table>
-	```
+```
 
 ## Captura y Edicion
 
 Agregamos al control el método de edición que sirve para cargar los datos por defecto a mostrar en el formulario de edición/captura, en el caso de que se esté editando un elemento, cargamos los datos de ese elemento:
 
-	```php
+```php
 	…
 	public function edicion() {
 		$id = getInt('id');
@@ -797,11 +833,11 @@ Agregamos al control el método de edición que sirve para cargar los datos por 
 		return compact('registro', 'opciones');
 	}
 	…
-	```
+```
 	
 Ahora agregamos la vista de edición, creamos el archivo *views/demousuario_edicion.php* y le ponemos el siguiente código:
 
-	```php
+```php
 	<form role="form" class="form-horizontal" action="phrapi/demousuario/guardar" method="POST" id="frm-edicion">
 		<input type="hidden" name="id" id="id" value="<?=@$result['registro']->id?>">
 
@@ -826,7 +862,7 @@ Ahora agregamos la vista de edición, creamos el archivo *views/demousuario_edic
 
 		<a href="demo.php" class="btn btn-default">Cancelar y Regresar</a>
 	</form>
-	```
+```
 
 ## Creación y Actualización
 
