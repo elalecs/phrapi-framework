@@ -37,10 +37,12 @@ Phrapi cuenta con una función global para ver el contenido de variables, es alg
 
 Para hacer uso de la consola solo se requiere mandar llamar a la función `D` pasando por argumentos las variables o datos que se requiera pintar.
 
+```php
 	D(['un','arreglo]);
 	D('una cadena');
 	D($una_variable_con_cualquier_tipo_de_datos);
 	D('una',['mezcla'],$de,$valores);
+```
 
 La forma de alterar el comportamiento de `D` se hace con las constantes:
 
