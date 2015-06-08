@@ -512,7 +512,7 @@ Algunas de las librerías con las que se ha trabajado son:
  *  PHPExcel
  *  sendgrid-php
  
-## Convenciones usadas de PHP en Phrapi
+## Convenciones de PHP usadas en Phrapi
 
 En vez de usr `echo $variable` se usará `<?=$variable?>`.
 
@@ -533,6 +533,8 @@ Para insertar variables en cadenas se deberá usar la forma compleja con llaves,
 No definir las expresiones regulares con */* para no complicar su lectura, preferir el uso de *~* (alt+ñ), por ejemplo en vez de tener esto `echo preg_replace("/(\d{4})\/(\d{2})\/(\d{2})/", "$3-$2-$1", "2015/02/21");` usar la forma más clara con `echo preg_replace("~(\d{4})/(\d{2})/(\d{2})~", "$3-$2-$1", "2015/02/21");` evitando confusión escapando las diagonales.
 
 Preferir el declarar los arreglos en su forma corta con `[]` en vez de `array()`.
+
+Los archivos de clases como en los controles no es obligatorio terminarlos con `?>` de hecho no se recomienda ponerlo para evitar llenar el sistema de saltos de línea innecesarios que se agregan en la mayoría de las veces en automático por los editores de código después de ingresar un `?>`.
 
 # Guía para hacer un CRUD con Phrapi
 
@@ -594,9 +596,166 @@ El primer paso será crear la página que contendrá la ejecución del control, 
 
 ## Listado
 
+Archivo *phrapi/controllers/DemoUsuario.php*
+
+	<?php defined('PHRAPI') or die("Direct access not allowed!");
+
+	class DemoUsuario {
+		private $db;
+
+		public function __construct(){
+			$this->db = DB::getInstance();
+		}
+
+		}
+		public function index() {
+			$navigation = $this->db->getNavigation([
+				'per_page' => getInt('per_page', 10),
+				'sql_total' => 'SELECT COUNT(*) FROM the_users'
+			]);
+
+			$items = $this->db->queryAll("
+				SELECT * FROM the_users {$navigation->limit}
+			");
+
+			return compact('navigation', 'items');
+		}
+	}
+	
+Archivo *views/demousuario_index.php*
+
+	<table class="table table-striped table-hover" id="sample-table-2">
+		<thead>
+			<tr>
+				<th>Nombre</th>
+				<th>Estatus</th>
+				<th>Creado</th>
+				<th></th>
+			</tr>
+		</thead>
+		<tbody>
+			<? foreach($result['items'] as $item): ?>
+			<tr>
+				<td><?=$item->name?></td>
+				<td><?=$item->status?></td>
+				<td><?=$item->created_at?></td>
+				<td class="center">
+					<a href="demo.php?accion=edicion&amp;id=<?=$item->id?>" class="btn btn-xs"><i class="fa fa-edit"></i></a>
+					<a href="demo.php?accion=borrar&amp;id=<?=$item->id?>" class="btn btn-xs"><i class="fa fa-times"></i></a>
+				</td>
+			</tr>
+			<? endforeach ?>
+		</tbody>
+		<tfoot>
+			<tr>
+				<td colspan="8">
+					<? include_once 'views/navigation.php' ?>
+				</td>
+			</tr>
+		</tfoot>
+	</table>
+
+Archivo *views/navigation.php*
+
+	<table class="table">
+		<thead>
+			<tr>
+				<td colspan="3">
+					<?=$result['navigation']->items->starting?> a <?=$result['navigation']->items->ending?> de <?=$result['navigation']->total?>
+				</td>
+				<td colspan="3" class="text-center">
+					<div class="dropdown">
+						<button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+							Elementos por Página <span class="caret"></span>
+						</button>
+						<ul class="dropdown-menu">
+							<li><a href="<?=$result['navigation']->link?>?per_page=10" tabindex="-1">10</a></li>
+							<li><a href="<?=$result['navigation']->link?>?per_page=25" tabindex="-1">25</a></li>
+							<li><a href="<?=$result['navigation']->link?>?per_page=50" tabindex="-1">50</a></li>
+							<li><a href="<?=$result['navigation']->link?>?per_page=100" tabindex="-1">100</a></li>
+							<li><a href="<?=$result['navigation']->link?>?per_page=250" tabindex="-1">250</a></li>
+						</ul>
+					</div>
+				</td>
+				<td colspan="3" class="pull-right">
+					<ul class="pull-right pagination pagination-blue m-no">
+						<?if($result['navigation']->offsets->previous >= 0):?>
+						<li><a href="<?=$result['navigation']->link?>?offset=<?=$result['navigation']->offsets->previous?>"><i class="fa fa-chevron-left"></i></a></li>
+						<?else:?>
+						<li class="disabled"><a><i class="fa fa-chevron-left"></i></a></li>
+						<?endif?>
+						<?foreach ($result['navigation']->offsets->pages as $page => $offset):?>
+						<li class="<?=$offset==$result['navigation']->offsets->actual?'active':''?>"><a href="<?=$result['navigation']->link?>?offset=<?=$offset?>"><?=$page?></a></li>
+						<?endforeach?>
+						<?if($result['navigation']->offsets->next < $result['navigation']->total):?>
+						<li><a href="<?=$result['navigation']->link?>?offset=<?=$result['navigation']->offsets->next?>"><i class="fa fa-chevron-right"></i></a></li>
+						<?else:?>
+						<li class="disabled"><a><i class="fa fa-chevron-right"></i></a></li>
+						<?endif?>
+					</ul>
+				</td>
+			</tr>
+		</thead>
+	</table>
+
 ## Captura y Edicion
 
+Agregamos al control el método de edición que sirve para cargar los datos por defecto a mostrar en el formulario de edición/captura, en el caso de que se esté editando un elemento, cargamos los datos de ese elemento:
+
+	…
+	public function edicion() {
+		$id = getInt('id');
+
+		$registro = new stdClass;
+		if($id) {
+			$registro = $this->db->queryRow("
+				SELECT
+					*
+				FROM
+					requirements
+				WHERE
+					id = '{$id}'
+			");
+		}
+
+		$opciones = [
+			'status' => ['Todos'] + $this->db->getEnumOptions("the_users",'status')
+		];
+
+		return compact('registro', 'opciones');
+	}
+	…
+	
+Ahora agregamos la vista de edición, creamos el archivo *views/demousuario_edicion.php* y le ponemos el siguiente código:
+
+	<form role="form" class="form-horizontal" action="phrapi/demousuario/guardar" method="POST" id="frm-edicion">
+		<input type="hidden" name="id" id="id" value="<?=@$result['registro']->id?>">
+
+		<div class="form-group">
+			<label class="col-sm-3 control-label">
+				Nombre
+			</label>
+			<div class="col-sm-8">
+				<input type="text" name="name" class="form-control" value="<?=@$result['registro']->name?>" data-validate='required'>
+			</div>
+		</div>
+		<div class="form-group">
+			<label class="col-sm-3 control-label">
+				Estatus
+			</label>
+			<div class="col-sm-8">
+				<select name="status" class="form-control" data-validate='required'>
+					<? Html::Options($result['opciones']['status'], @$result['registro']->status) ?>
+				</select>
+			</div>
+		</div>
+
+		<a href="demo.php" class="btn btn-default">Cancelar y Regresar</a>
+	</form>
+
 ## Creación y Actualización
+
+
 
 ## Borrado
 
